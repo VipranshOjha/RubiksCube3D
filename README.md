@@ -145,7 +145,6 @@ python main.py
 
 ```
 
-
 ---
 
 
@@ -172,6 +171,9 @@ RubiksCube3D.py
 - Matrix-based slice rotations
   
 
+---
+
+
 ### 🧩 Cube Logic Core
 
 RubiksCubeCore.py
@@ -188,6 +190,8 @@ RubiksCubeCore.py
 
 - Completely independent of rendering.
 
+
+---
   
 
 ### 🎲 Scrambler
@@ -198,6 +202,8 @@ Scrambler.py
 
 - Avoids redundant axis-layer repetitions
 
+
+---
 
 
 ### 🤖 Solver Bridge
@@ -214,7 +220,9 @@ Solver.py
 
 - Validates solved state
 
+
 ---
+
 
 ## 🔬 Technical Concepts Demonstrated
 
