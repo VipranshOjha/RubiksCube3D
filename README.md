@@ -1,58 +1,261 @@
-# 3D Rubik's Cube Simulator & Optimal Solver
+# 🧊 3D Rubik’s Cube Simulator & Optimal Solver
 
-A fully interactive, mathematically robust 3D Rubik's Cube simulator built from scratch using Python, Pygame, and PyOpenGL. This project features intuitive mouse-driven interactions, smooth animations, and an integrated optimal solver powered by the Kociemba Two-Phase Algorithm.
+A fully interactive, mathematically robust 3D Rubik’s Cube simulator built from scratch using **Python, Pygame, and PyOpenGL**, featuring real-time mouse-driven manipulation and an integrated optimal solver powered by the Kociemba Two-Phase Algorithm.
 
-## ✨ Features
+> This project combines real-time 3D graphics, quaternion mathematics, computational geometry, and optimal search algorithms into one cohesive system.
 
-* **Advanced 3D Rendering:** Built with PyOpenGL featuring dynamic lighting, depth testing, and strict anti-z-fighting geometry.
-* **Gimbal-Lock-Free Camera:** Uses Quaternion-based arcball/trackball mathematics allowing you to rotate the entire cube globally without axis flipping or inverted controls.
-* **Dynamic Slice Dragging:** Features robust Ray-AABB intersection (raycasting). You can click any individual sticker and drag your mouse to seamlessly rotate that specific row or column. Releasing the mouse smoothly snaps the layer to the nearest 90-degree increment.
-* **Optimal Kociemba Solver:** Integrated with the `rubik-twophase` engine to calculate the absolute optimal solution (20 moves or fewer) for any scrambled state in milliseconds.
-* **Animated Automation:** Watch the cube automatically scramble and solve itself with smooth, queue-based rendering animations.
+
+---
+
+
+## 🚀 Highlights
+
+
+### 🧮 Quaternion-Based Trackball (No Gimbal Lock)
+
+Uses true quaternion math for arcball-style rotation, ensuring:
+- Smooth global cube rotation  
+
+- No axis flipping  
+
+- No gimbal lock artifacts  
+
+- Natural camera behavior  
+
+
+---
+
+
+### 🎯 Accurate Raycasting (Ray–AABB Intersection)
+
+Click any sticker and rotate that exact slice using:
+
+- 3D ray casting from screen space  
+
+- Slab-based Ray–AABB intersection  
+
+- Face-normal detection  
+
+- Screen-space projection mapping for drag direction  
+
+
+
+This is mathematically precise geometric picking — not an approximation.
+
+
+---
+
+
+### 🔄 Dynamic Slice Dragging with Snap Logic
+
+- Continuous real-time slice rotation  
+
+- Projection-based angle detection  
+
+- Automatic snapping to nearest 90°  
+
+- Smooth visual correction animation  
+
+
+---
+
+
+### ⚡ Optimal Solver (≤ 20 Moves)
+
+Integrated with the Kociemba Two-Phase Algorithm:
+
+- Always finds a solution in **20 moves or fewer**  
+
+- Pure-Python implementation via `rubik-twophase`  
+
+- Converts 3D cube state → 54-character facelet string  
+
+- Parses solver output back into engine moves  
+
+- Fully animated playback  
+
+
+---
+
 
 ## 🎮 Controls
 
-* **Left Click + Drag (on background):** Rotate the entire cube globally.
-* **Left Click + Drag (on a cubie):** Dynamically rotate that specific slice/layer in the direction of your mouse drag.
-* **`SPACE`:** Automatically scramble the cube (20 random moves).
-* **`ENTER` / `RETURN`:** Calculate the optimal solution and watch the cube solve itself.
-* **`R`:** Instantly reset the cube to the solved state.
-* **`ESC`:** Exit the simulator.
+| Action | Control |
+|--------|---------|
+| Rotate entire cube | **Left Click + Drag (background)** |
+| Rotate slice | **Left Click + Drag (on cubie)** |
+| Scramble (20 moves) | `SPACE` |
+| Solve optimally | `ENTER` |
+| Reset to solved | `R` |
+| Exit | `ESC` |
 
-## 🛠️ Installation & Setup
+---
 
-**Prerequisites:** Python 3.x
 
-### 1. **Clone the repository:**
-```
-   git clone [https://github.com/VipranshOjha/RubiksCube3D.git](https://github.com/VipranshOjha/RubiksCube3D.git)
-   cd RubiksCube3D
-```
-### 2. Install the dependencies:
-```
-pip install pygame PyOpenGL PyOpenGL_accelerate numpy rubik-twophase
-```
-### 3. ⚠️ Important: First-Run Initialization (Pruning Tables)
-Because this project uses a pure-Python implementation of the Kociemba algorithm, it must generate massive mathematical "pruning tables" on its very first run.
+## 🛠 Installation
 
-Run this command in your terminal before playing to generate the tables:
-```
-python -c "import twophase.solver as sv; print(sv.solve('DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD', 20, 5))"
-```
-Note: This process takes roughly 15-30 minutes depending on your CPU. It is a one-time operation. Once complete, the tables are cached to your hard drive, and the solver will run instantly from then on.
+### 1️⃣ Clone the repository
 
- ### 4. Run the Simulator:
 ```
+
+git clone https://github.com/VipranshOjha/RubiksCube3D.git
+
+cd RubiksCube3D
+
+```
+
+
+### 2️⃣ Install dependencies
+
+```
+
+pip install -r requirements.txt
+
+pip install rubik-twophase
+
+```
+
+
+### 3️⃣ First-Run Initialization (Important ⚠️)
+
+On first run, the solver must generate large pruning tables.
+
+Run once:
+
+```
+
+python -c "import twophase.solver as sv;
+
+print(sv.solve('DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD', 20, 5))"
+
+```
+
+⏳ Takes ~15–30 minutes depending on CPU
+
+💾 Cached permanently after generation
+
+⚡ All future solves are near-instant
+
+
+### 4️⃣ Run the simulator
+
+```
+
 python main.py
+
 ```
 
-## 🏗️ Project Architecture
-main.py: The entry point that initializes the window and runs the main loop.
 
-RubiksCube3D.py: The core rendering engine. Handles PyOpenGL matrices, quaternion trackball math, raycasting for mouse interactions, and animation queues.
 
-RubiksCubeCore.py: The logical backend. Manages the 3D grid coordinates, piece states, matrix rotations, and face/sticker data independently of the visual renderer.
+## 🧠 Architecture
 
-Scrambler.py: Generates sequences of random moves to scramble the cube state.
 
-Solver.py: Bridges the 3D spatial state with the Kociemba engine. Translates 3D normal vectors and coordinates into the 54-character string format required by the solver, and parses the output back into engine-readable moves.
+The project is cleanly separated into rendering, logic, and algorithmic solving.
+
+
+### 🖥 Rendering Engine
+
+RubiksCube3D.py
+
+- OpenGL lighting + depth testing
+
+- Quaternion trackball math
+
+- Ray–AABB picking
+
+- Animation queues
+
+- Snap interpolation
+
+- Matrix-based slice rotations
+  
+
+### 🧩 Cube Logic Core
+
+RubiksCubeCore.py
+
+- Pure state engine
+
+- 3D coordinate system (-1, 0, 1 grid)
+
+- Sticker normal tracking
+
+- Layer rotation transformations
+
+- Deep-copy safe state mutation
+
+- Completely independent of rendering.
+
+  
+
+### 🎲 Scrambler
+
+Scrambler.py
+
+- Generates Kociemba-compatible scramble sequences
+
+- Avoids redundant axis-layer repetitions
+
+
+
+### 🤖 Solver Bridge
+
+Solver.py
+
+- Builds 54-character face string in correct facelet order
+
+- Dynamically maps center colors
+
+- Parses numeric solver notation (R1, R2, R3)
+
+- Converts solution into engine-compatible move tuples
+
+- Validates solved state
+
+  
+
+## 🔬 Technical Concepts Demonstrated
+
+- Quaternion algebra
+
+- 4×4 transformation matrices
+
+- OpenGL rendering pipeline
+
+- Ray casting & slab intersection
+
+- Projection math (gluProject / gluUnProject)
+
+- Discrete 3D rotational transformations
+
+- Optimal search (two-phase solving algorithm)
+
+- State → string → state algorithm bridging
+
+
+## 📁 Project Structure
+
+```
+
+RubiksCube3D/
+
+│
+
+├── main.py
+
+├── RubiksCube3D.py      # Rendering + input engine
+
+├── RubiksCubeCore.py    # Cube state logic
+
+├── Scrambler.py
+
+├── Solver.py
+
+└── requirements.txt
+
+```
+
+
+## 📜 License
+
+MIT License
