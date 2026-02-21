@@ -146,6 +146,8 @@ python main.py
 ```
 
 
+---
+
 
 ## 🧠 Architecture
 
@@ -212,7 +214,7 @@ Solver.py
 
 - Validates solved state
 
-  
+---
 
 ## 🔬 Technical Concepts Demonstrated
 
@@ -231,6 +233,9 @@ Solver.py
 - Optimal search (two-phase solving algorithm)
 
 - State → string → state algorithm bridging
+
+
+---
 
 
 ## 📁 Project Structure
@@ -254,6 +259,8 @@ RubiksCube3D/
 └── requirements.txt
 
 ```
+
+---
 
 
 ## 📜 License
