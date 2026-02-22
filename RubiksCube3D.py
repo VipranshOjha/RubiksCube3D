@@ -1,9 +1,4 @@
 # RubiksCube3D.py
-# Fully refactored 3D Rubik's Cube renderer with:
-#   - Correct box geometry (no np.sign collapse)
-#   - Quaternion-based trackball rotation (no gimbal lock)
-#   - Robust ray-AABB picking with accurate normals
-#   - Continuous slice drag with snap-to-90° animation
 
 import pygame
 from pygame.locals import *
@@ -15,7 +10,7 @@ from RubiksCubeCore import RubiksCubeCore
 from Scrambler import CubeScrambler
 from Solver import CubeSolver
 
-# ========================= Quaternion Helpers =========================
+# Quaternion Helpers 
 
 def quat_multiply(q1, q2):
     """Hamilton product of two quaternions [w, x, y, z]."""
@@ -81,7 +76,7 @@ def quat_from_two_vectors(v0, v1):
     return quat_normalize(q)
 
 
-# ========================= Main Class =========================
+# Main Class
 
 class RubiksCube3D:
     def __init__(self):
@@ -93,7 +88,7 @@ class RubiksCube3D:
         glEnable(GL_DEPTH_TEST)
         glShadeModel(GL_SMOOTH)
 
-        # ---- lighting ----
+        # lighting 
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glLightfv(GL_LIGHT0, GL_POSITION, (-2, 4, 5, 1))
@@ -112,7 +107,7 @@ class RubiksCube3D:
         glLoadIdentity()
         glTranslatef(0, 0, -8)
 
-        # ---- cube state ----
+        # cube state 
         self.core = RubiksCubeCore()
         self.scrambler = CubeScrambler()
         self.solver = CubeSolver(self.core)
@@ -126,14 +121,14 @@ class RubiksCube3D:
         self.orientation = quat_normalize(quat_multiply(qx, qy))
         self.trackball_radius = min(self.width, self.height) * 0.45
 
-        # ---- animation queue (for scripted moves, scramble, etc.) ----
+        # animation queue (for scripted moves, scramble, etc.)
         self.animating = False
         self.anim_q = []
         self.anim_frame = 0
         self.anim_speed = 5   # degrees per frame
         self.anim_current = None
 
-        # ---- snap animation (after slice drag release) ----
+        # snap animation (after slice drag release) 
         self.snap_animating = False
         self.snap_axis = None
         self.snap_layer = None
@@ -141,7 +136,7 @@ class RubiksCube3D:
         self.snap_target_angle = 0.0
         self.snap_speed = 8.0  # degrees per frame for snap
 
-        # ---- input state ----
+        # input state 
         self.drag_global = False
         self.drag_slice = False
         self.drag_start = None           # (mx, my) at mouse-down
@@ -174,7 +169,7 @@ class RubiksCube3D:
         # Pre-build box face data (computed once, used every frame)
         self._box_faces = self._build_box_faces(self.size)
 
-    # ========================= Geometry =========================
+    # Geometry 
 
     @staticmethod
     def _build_box_faces(s):
@@ -292,7 +287,7 @@ class RubiksCube3D:
         for (nx, ny, nz), col in cubie.stickers.items():
             self.draw_sticker(nx, ny, nz, self.colors[col])
 
-    # ========================= ModelView helpers =========================
+    # ModelView helpers
 
     def _get_rotation_matrix(self):
         """Get the current 4x4 rotation matrix from the orientation quaternion."""
@@ -313,7 +308,7 @@ class RubiksCube3D:
         glPopMatrix()
         return model, proj, viewport
 
-    # ========================= Ray-AABB Picking =========================
+    # Ray-AABB Picking 
 
     def pick_cubelet(self, mx, my):
         """Cast a ray from screen coordinates (mx, my) and find the closest
@@ -389,7 +384,7 @@ class RubiksCube3D:
 
         return best_pos, best_normal
 
-    # ========================= Slice Drag Logic =========================
+    # Slice Drag Logic 
 
     def _determine_slice_axis(self, dx, dy):
         """Once the mouse has moved enough, determine which rotation axis
@@ -538,7 +533,7 @@ class RubiksCube3D:
         self.drag_slice = False
         self.slice_axis_locked = False
 
-    # ========================= Animation =========================
+    # Animation 
 
     def next_anim(self):
         """Pop the next queued animation (for scripted moves)."""
@@ -576,7 +571,7 @@ class RubiksCube3D:
             self.current_slice_angle = 0.0
             self.snap_animating = False
 
-    # ========================= Rendering =========================
+    # Rendering 
 
     def draw_cube(self):
         """Render the full cube."""
@@ -649,7 +644,7 @@ class RubiksCube3D:
         glPopMatrix()
         pygame.display.flip()
 
-    # ========================= Input Handling =========================
+    # Input Handling 
 
     def handle_events(self):
         for e in pygame.event.get():
@@ -658,7 +653,7 @@ class RubiksCube3D:
             if e.type == KEYDOWN and e.key == K_ESCAPE:
                 return False
 
-            # --- Scramble (SPACE) / Solve (ENTER) ---
+            # Scramble (SPACE) / Solve (ENTER) 
             if e.type == KEYDOWN and not (self.animating or self.snap_animating
                                           or self.drag_slice):
                 if e.key == K_SPACE:
@@ -734,7 +729,7 @@ class RubiksCube3D:
 
         return True
 
-    # ========================= Main Loop =========================
+    # Main Loop 
 
     def run(self):
         clock = pygame.time.Clock()

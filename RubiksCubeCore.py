@@ -1,5 +1,4 @@
 # RubiksCubeCore.py
-# Pure cube logic - no pygame, no OpenGL
 
 from dataclasses import dataclass
 import copy
@@ -34,7 +33,7 @@ class RubiksCubeCore:
                             stickers[normal] = color
                     self.cubies[(x,y,z)] = Cubie((x,y,z), stickers)
 
-    # --- rotation engine ---
+    # rotation engine 
     def rotate_layer(self, axis, layer, direction):
         new = {}
         for pos,cubie in self.cubies.items():

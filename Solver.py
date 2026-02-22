@@ -1,6 +1,5 @@
 # Solver.py
 # Optimal Rubik's Cube solver using the Kociemba two-phase algorithm.
-# Pure logic — no Pygame, no OpenGL.
 # Returns a list of (axis, layer, direction) tuples for the animation queue.
 
 import twophase.solver as sv
@@ -16,16 +15,15 @@ class CubeSolver:
         self.core = core
         self.move_history = []
 
-        # ------------------------------------------------------------------ #
-        #  Facelet reading order for the kociemba cube string                  #
-        #                                                                      #
-        #  kociemba expects a 54-char string: U1..U9 R1..R9 F1..F9            #
-        #                                    D1..D9 L1..L9 B1..B9            #
-        #  Each group of 9 is top-left → bottom-right when looking at         #
-        #  that face head-on (with U on top for equator faces).               #
-        #                                                                      #
-        #  Each entry is ( (x,y,z) position , (nx,ny,nz) sticker normal ).    #
-        # ------------------------------------------------------------------ #
+        #  Facelet reading order for the kociemba cube string 
+
+        #  kociemba expects a 54-char string: U1..U9 R1..R9 F1..F9    
+        #                                    D1..D9 L1..L9 B1..B9   
+        #  Each group of 9 is top-left → bottom-right when looking at    
+        #  that face head-on (with U on top for equator faces). 
+
+        #  Each entry is ( (x,y,z) position , (nx,ny,nz) sticker normal ). 
+    
 
         U = (0, 1, 0)
         D = (0, -1, 0)
@@ -35,45 +33,43 @@ class CubeSolver:
         L = (-1, 0, 0)
 
         self._face_order = [
-            # ---- U face (y=1, looking down; top row is toward B) ----
+            # U face (y=1, looking down; top row is toward B) 
             ((-1,1,-1),U), ((0,1,-1),U), ((1,1,-1),U),
             ((-1,1, 0),U), ((0,1, 0),U), ((1,1, 0),U),
             ((-1,1, 1),U), ((0,1, 1),U), ((1,1, 1),U),
 
-            # ---- R face (x=1, looking from +X; left col is F side) ----
+            # R face (x=1, looking from +X; left col is F side) 
             ((1,1, 1),R), ((1,1, 0),R), ((1,1,-1),R),
             ((1,0, 1),R), ((1,0, 0),R), ((1,0,-1),R),
             ((1,-1,1),R), ((1,-1,0),R), ((1,-1,-1),R),
 
-            # ---- F face (z=1, looking from +Z; left col is L side) ----
+            # F face (z=1, looking from +Z; left col is L side) 
             ((-1,1,1),F), ((0,1,1),F), ((1,1,1),F),
             ((-1,0,1),F), ((0,0,1),F), ((1,0,1),F),
             ((-1,-1,1),F),((0,-1,1),F),((1,-1,1),F),
 
-            # ---- D face (y=-1, looking from -Y; top row is toward F) ----
+            # D face (y=-1, looking from -Y; top row is toward F) 
             ((-1,-1,1),D),  ((0,-1,1),D),  ((1,-1,1),D),
             ((-1,-1,0),D),  ((0,-1,0),D),  ((1,-1,0),D),
             ((-1,-1,-1),D), ((0,-1,-1),D), ((1,-1,-1),D),
 
-            # ---- L face (x=-1, looking from -X; left col is B side) ----
+            # L face (x=-1, looking from -X; left col is B side) 
             ((-1,1,-1),L), ((-1,1, 0),L), ((-1,1, 1),L),
             ((-1,0,-1),L), ((-1,0, 0),L), ((-1,0, 1),L),
             ((-1,-1,-1),L),((-1,-1,0),L),((-1,-1,1),L),
 
-            # ---- B face (z=-1, looking from -Z; left col is R side) ----
+            # B face (z=-1, looking from -Z; left col is R side) 
             ((1,1,-1),B),  ((0,1,-1),B),  ((-1,1,-1),B),
             ((1,0,-1),B),  ((0,0,-1),B),  ((-1,0,-1),B),
             ((1,-1,-1),B), ((0,-1,-1),B), ((-1,-1,-1),B),
         ]
 
-        # ------------------------------------------------------------------ #
-        #  Notation → engine move mapping                                      #
-        #                                                                      #
-        #  Verified against RubiksCubeCore.rotate_layer():                     #
-        #    axis='y',layer=1,dir=+1  rotates UF→UR (= standard U CW)        #
-        #    axis='x',layer=1,dir=-1  rotates UFR→UBR (= standard R CW)      #
-        #    axis='z',layer=1,dir=-1  rotates UF→UR  (= standard F CW)       #
-        # ------------------------------------------------------------------ #
+        #  Notation → engine move mapping   
+                                                 
+        #  Verified against RubiksCubeCore.rotate_layer():                    
+        #    axis='y',layer=1,dir=+1  rotates UF→UR (= standard U CW)
+        #    axis='x',layer=1,dir=-1  rotates UFR→UBR (= standard R CW)
+        #    axis='z',layer=1,dir=-1  rotates UF→UR  (= standard F CW)
 
         self._notation_map = {
             'U': ('y',  1, -1),   "U'": ('y',  1,  1),
@@ -84,9 +80,7 @@ class CubeSolver:
             'B': ('z', -1,  1),   "B'": ('z', -1, -1),
         }
 
-    # ------------------------------------------------------------------ #
-    #  State inspection                                                    #
-    # ------------------------------------------------------------------ #
+    #  State inspection
 
     def is_solved(self):
         """Check if every outer face of the cube is a uniform color."""
@@ -102,9 +96,7 @@ class CubeSolver:
 
         return all(len(c) == 1 for c in face_colors.values())
 
-    # ------------------------------------------------------------------ #
-    #  Kociemba cube-string builder                                        #
-    # ------------------------------------------------------------------ #
+    #  Kociemba cube-string builder
 
     def _get_kociemba_string(self):
         """Read the current cube state and produce the 54-char kociemba string.
@@ -137,9 +129,7 @@ class CubeSolver:
 
         return ''.join(result)
 
-    # ------------------------------------------------------------------ #
-    #  Solution parser                                                     #
-    # ------------------------------------------------------------------ #
+    #  Solution parser
 
     def _parse_solution(self, solution_string):
         """Convert a RubikTwoPhase solution string into move tuples.
@@ -189,9 +179,7 @@ class CubeSolver:
 
         return moves
 
-    # ------------------------------------------------------------------ #
-    #  Main solve method                                                   #
-    # ------------------------------------------------------------------ #
+    #  Main solve method  
 
     def solve(self):
         """Compute an optimal solution using the Kociemba two-phase algorithm.
@@ -224,9 +212,7 @@ class CubeSolver:
             print("The cube may be in an unsolvable state.")
             return []
 
-    # ------------------------------------------------------------------ #
-    #  Utility                                                             #
-    # ------------------------------------------------------------------ #
+    #  Utility  
 
     def get_move_notation(self):
         """Return the solution as a human-readable move string."""

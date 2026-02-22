@@ -1,6 +1,4 @@
 # Scrambler.py
-# Pure logic — no Pygame, no OpenGL.
-# Generates a list of random moves that can be fed into the animation queue.
 
 import random
 
