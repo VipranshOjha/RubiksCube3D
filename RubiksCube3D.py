@@ -113,11 +113,11 @@ class RubiksCube3D:
         self.solver = CubeSolver(self.core)
 
         # Trackball orientation quaternion [w, x, y, z]
-        # Start with a pleasant viewing angle (~25° around X, ~-35° around Y)
-        qx = np.array([math.cos(math.radians(12.5)),
-                        math.sin(math.radians(12.5)), 0, 0])
-        qy = np.array([math.cos(math.radians(-17.5)),
-                        0, math.sin(math.radians(-17.5)), 0])
+        # Start with a pleasant viewing angle (~30° around X, ~-45° around Y)
+        qx = np.array([math.cos(math.radians(-15)),
+                        math.sin(math.radians(-15)), 0, 0])
+        qy = np.array([math.cos(math.radians(22.5)),
+                        0, math.sin(math.radians(22.5)), 0])
         self.orientation = quat_normalize(quat_multiply(qx, qy))
         self.trackball_radius = min(self.width, self.height) * 0.45
 
@@ -160,8 +160,8 @@ class RubiksCube3D:
         self.colors = {
             'U': (1.0, 1.0, 1.0),    # white
             'D': (1.0, 1.0, 0.0),    # yellow
-            'F': (0.0, 0.8, 0.0),    # green
-            'B': (0.0, 0.0, 1.0),    # blue
+            'F': (0.0, 0.0, 1.0),    # blue
+            'B': (0.0, 0.8, 0.0),    # green
             'R': (0.9, 0.0, 0.0),    # red
             'L': (1.0, 0.5, 0.0),    # orange
         }

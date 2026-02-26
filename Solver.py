@@ -20,9 +20,9 @@ class CubeSolver:
         #  kociemba expects a 54-char string: U1..U9 R1..R9 F1..F9    
         #                                    D1..D9 L1..L9 B1..B9   
         #  Each group of 9 is top-left → bottom-right when looking at    
-        #  that face head-on (with U on top for equator faces). 
+        #  that face head-on
 
-        #  Each entry is ( (x,y,z) position , (nx,ny,nz) sticker normal ). 
+        #  Each entry is ( (x,y,z) position , (nx,ny,nz) sticker normal )
     
 
         U = (0, 1, 0)
@@ -107,7 +107,7 @@ class CubeSolver:
         """
         cubies = self.core.get_cubies()
 
-        # Determine center colors → kociemba face labels
+        # Determine center colors -> kociemba face labels
         center_info = [
             ('U', (0,  1,  0), (0,  1,  0)),
             ('R', (1,  0,  0), (1,  0,  0)),
@@ -121,7 +121,7 @@ class CubeSolver:
             center_color = cubies[pos].stickers[normal]
             color_to_face[center_color] = face_label
 
-        # Build the 54-char string
+        # Build the 
         result = []
         for pos, normal in self._face_order:
             color = cubies[pos].stickers[normal]
@@ -129,7 +129,6 @@ class CubeSolver:
 
         return ''.join(result)
 
-    #  Solution parser
 
     def _parse_solution(self, solution_string):
         """Convert a RubikTwoPhase solution string into move tuples.
@@ -152,11 +151,11 @@ class CubeSolver:
                 print(f"Warning: unrecognized move token '{token}'")
                 continue
 
-            face = token[0]         # e.g. 'R'
-            suffix = token[1:]      # e.g. '1', '2', '3', or "'"
+            face = token[0]         
+            suffix = token[1:]      
 
             if suffix == '1' or suffix == '':
-                # CW 90° — use the base face key
+                # CW 90° — use base face key
                 key = face
                 count = 1
             elif suffix == '2':
@@ -164,7 +163,7 @@ class CubeSolver:
                 key = face
                 count = 2
             elif suffix == '3' or suffix == "'":
-                # CCW 90° — use the prime key
+                # CCW 90° — use prime key
                 key = face + "'"
                 count = 1
             else:

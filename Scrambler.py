@@ -20,7 +20,7 @@ class CubeScrambler:
         prev_layer = None
 
         for _ in range(num_moves):
-            # Avoid consecutive moves on the same axis+layer (they'd cancel or double)
+            # Avoid consecutive moves on the same axis+layer
             while True:
                 axis = random.choice(self.axes)
                 layer = random.choice(self.layers)
