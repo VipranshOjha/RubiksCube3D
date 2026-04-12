@@ -9,6 +9,7 @@ import math
 from RubiksCubeCore import RubiksCubeCore
 from Scrambler import CubeScrambler
 from Solver import CubeSolver
+from TrainingSolver import TrainingSolver
 
 # Quaternion Helpers 
 
@@ -111,6 +112,22 @@ class RubiksCube3D:
         self.core = RubiksCubeCore()
         self.scrambler = CubeScrambler()
         self.solver = CubeSolver(self.core)
+        self.training_solver = TrainingSolver(self.core)
+
+        # UI State
+        self.move_count = 0
+        self.training_mode = False
+        self.wrong_move_flash = 0
+        self.font = pygame.font.SysFont('Arial', 24)
+        self.small_font = pygame.font.SysFont('Arial', 18)
+        self.ui_tex_id = None
+        self.ui_dirty = True
+        self.last_training_state = None
+
+        # UI Buttons (x, y, w, h)
+        self.btn_scramble = pygame.Rect(10, 10, 120, 40)
+        self.btn_solve = pygame.Rect(10, 60, 120, 40)
+        self.btn_toggle_mode = pygame.Rect(10, 110, 150, 40)
 
         # Trackball orientation quaternion [w, x, y, z]
         # Start with a pleasant viewing angle (~30° around X, ~-45° around Y)
@@ -279,9 +296,15 @@ class RubiksCube3D:
 
         glEnd()
 
-    def draw_cubie(self, cubie):
+    def draw_cubie(self, cubie, highlight=False):
         """Draw a single cubie: black plastic base + colored stickers."""
-        glColor3f(0.12, 0.12, 0.12)
+        if highlight:
+            # Pulsing highlight effect
+            pulse = (math.sin(pygame.time.get_ticks() * 0.01) + 1.0) * 0.5
+            glColor3f(0.12 + 0.3 * pulse, 0.12 + 0.3 * pulse, 0.12)
+        else:
+            glColor3f(0.12, 0.12, 0.12)
+
         self.draw_box()
 
         for (nx, ny, nz), col in cubie.stickers.items():
@@ -507,6 +530,29 @@ class RubiksCube3D:
         num_turns = int(round(angle / 90.0))
 
         if num_turns != 0:
+            self.ui_dirty = True
+            # Training Mode Validation
+            if self.training_mode:
+                instruct, targets, algos = self.training_solver.get_step_info()
+                if algos:
+                    # Check if the move made matches the first move of any suggested algorithm
+                    correct = False
+                    # direction mapping from core: direction = 1 if num_turns > 0 else -1
+                    actual_dir = 1 if num_turns > 0 else -1
+                    for algo in algos:
+                        move_code = algo.split()[0]
+                        if move_code in self.solver._notation_map:
+                            expected_move = self.solver._notation_map[move_code]
+                            if (self.slice_rot_axis == expected_move[0] and
+                                self.slice_rot_layer == expected_move[1] and
+                                actual_dir == expected_move[2]):
+                                correct = True
+                                break
+
+                    if not correct:
+                        self.wrong_move_flash = 30 # Flash for 30 frames
+                        self.ui_dirty = True
+
             # Determine direction for core.rotate_layer
             # direction = +1 or -1 per call, repeated abs(num_turns) times
             direction = 1 if num_turns > 0 else -1
@@ -514,6 +560,10 @@ class RubiksCube3D:
                 self.core.rotate_layer(self.slice_rot_axis,
                                        self.slice_rot_layer,
                                        direction)
+                self.move_count += 1
+
+            if self.solver.is_solved():
+                self.move_count = 0
 
         # Now animate from current visual angle to 0
         # (the core has already been updated, so the visual target is 0)
@@ -554,6 +604,10 @@ class RubiksCube3D:
         self.anim_frame += self.anim_speed
         if self.anim_frame >= 90:
             self.core.rotate_layer(axis, layer, direction)
+            self.move_count += 1
+            self.ui_dirty = True
+            if self.solver.is_solved():
+                self.move_count = 0
             self.animating = False
 
     def update_snap_anim(self):
@@ -573,14 +627,165 @@ class RubiksCube3D:
 
     # Rendering 
 
+    def update_ui_texture(self):
+        """Redraw UI to a surface and update the OpenGL texture."""
+        ui_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+
+        # Draw buttons
+        for btn, text in [(self.btn_scramble, "Scramble"),
+                          (self.btn_solve, "Solve"),
+                          (self.btn_toggle_mode, "Free Play" if not self.training_mode else "Training Mode")]:
+            pygame.draw.rect(ui_surface, (100, 100, 100, 200), btn)
+            pygame.draw.rect(ui_surface, (255, 255, 255), btn, 2)
+            txt_surf = self.small_font.render(text, True, (255, 255, 255))
+            ui_surface.blit(txt_surf, (btn.x + (btn.width - txt_surf.get_width())//2,
+                                       btn.y + (btn.height - txt_surf.get_height())//2))
+
+        # Draw move counter
+        move_txt = self.font.render(f"Moves: {self.move_count}", True, (255, 255, 255))
+        ui_surface.blit(move_txt, (self.width - 150, 10))
+
+        # Training Instructions
+        if self.training_mode:
+            instruct, targets, algos = self.training_solver.get_step_info()
+            y_offset = self.height - 100
+
+            # Flash red if wrong move made
+            bg_color = (0, 0, 0, 180)
+            if self.wrong_move_flash > 0:
+                bg_color = (200, 0, 0, 180)
+                self.wrong_move_flash -= 1
+                self.ui_dirty = True
+
+            pygame.draw.rect(ui_surface, bg_color, (10, y_offset, self.width - 20, 90))
+
+            lines = []
+            curr_line = ""
+            for word in instruct.split():
+                if self.font.size(curr_line + word)[0] < self.width - 40:
+                    curr_line += word + " "
+                else:
+                    lines.append(curr_line)
+                    curr_line = word + " "
+            lines.append(curr_line)
+
+            for i, line in enumerate(lines[:2]):
+                txt = self.font.render(line, True, (255, 255, 255))
+                ui_surface.blit(txt, (20, y_offset + 5 + i * 25))
+
+            if algos:
+                algo_txt = self.small_font.render("Algorithms: " + ", ".join(algos), True, (255, 255, 0))
+                ui_surface.blit(algo_txt, (20, y_offset + 60))
+
+        ui_data = pygame.image.tostring(ui_surface, "RGBA", True)
+
+        if self.ui_tex_id is None:
+            self.ui_tex_id = glGenTextures(1)
+
+        glBindTexture(GL_TEXTURE_2D, self.ui_tex_id)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.width, self.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ui_data)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        self.ui_dirty = False
+
+    def draw_ui(self):
+        """Draw 2D UI overlay using Pygame."""
+        if self.ui_dirty:
+            self.update_ui_texture()
+
+        # Save OpenGL state
+        glPushAttrib(GL_ENABLE_BIT)
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_LIGHTING)
+
+        # Switch to 2D projection
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        gluOrtho2D(0, self.width, self.height, 0)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        glEnable(GL_TEXTURE_2D)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glBindTexture(GL_TEXTURE_2D, self.ui_tex_id)
+        glColor4f(1, 1, 1, 1)
+        glBegin(GL_QUADS)
+        glTexCoord2f(0, 0); glVertex2f(0, 0)
+        glTexCoord2f(1, 0); glVertex2f(self.width, 0)
+        glTexCoord2f(1, 1); glVertex2f(self.width, self.height)
+        glTexCoord2f(0, 1); glVertex2f(0, self.height)
+        glEnd()
+        glDisable(GL_TEXTURE_2D)
+
+        # Restore OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+        glPopAttrib()
+
+    def draw_arrow(self, axis, layer, direction):
+        """Draw a 3D arrow indicating a move."""
+        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT)
+        glDisable(GL_LIGHTING)
+        glColor3f(1.0, 1.0, 0.0) # Yellow arrow
+
+        # Determine position for the arrow based on face/layer
+        # For simplicity, draw it slightly offset from the cube
+        glPushMatrix()
+        if axis == 'x':
+            glRotatef(90, 0, 1, 0)
+            glTranslatef(0, 0, layer * self.stride * 1.5)
+            if direction < 0: glRotatef(180, 0, 0, 1)
+        elif axis == 'y':
+            glRotatef(-90, 1, 0, 0)
+            glTranslatef(0, 0, layer * self.stride * 1.5)
+            if direction < 0: glRotatef(180, 0, 0, 1)
+        elif axis == 'z':
+            glTranslatef(0, 0, layer * self.stride * 1.5)
+            if direction < 0: glRotatef(180, 0, 0, 1)
+
+        # Draw a simple triangular arrow
+        glBegin(GL_TRIANGLES)
+        glVertex3f(0, 0.5, 0)
+        glVertex3f(-0.3, -0.3, 0)
+        glVertex3f(0.3, -0.3, 0)
+        glEnd()
+        glPopMatrix()
+        glPopAttrib()
+
     def draw_cube(self):
         """Render the full cube."""
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glPushMatrix()
 
+        # Get training targets for highlighting
+        highlight_cubies = []
+        training_algos = []
+        if self.training_mode:
+            instruct, highlight_cubies, training_algos = self.training_solver.get_step_info()
+            # If training info changed, mark UI dirty
+            state = (instruct, tuple(highlight_cubies), tuple(training_algos))
+            if state != self.last_training_state:
+                self.ui_dirty = True
+                self.last_training_state = state
+
         # Apply trackball rotation
         rot = self._get_rotation_matrix()
         glMultMatrixf(rot.T.flatten())
+
+        # Draw training arrows
+        if self.training_mode and training_algos:
+            # Show arrows for the first algorithm's first move
+            first_algo = training_algos[0].split()
+            if first_algo:
+                move_code = first_algo[0]
+                if move_code in self.solver._notation_map:
+                    axis, layer, direction = self.solver._notation_map[move_code]
+                    self.draw_arrow(axis, layer, direction)
 
         # Determine which slice is being animated (queued anim or live drag or snap)
         anim_axis = anim_layer = anim_dir = None
@@ -638,10 +843,12 @@ class RubiksCube3D:
             # Now translate the cubie out to its grid position
             glTranslatef(tx, ty, tz)
 
-            self.draw_cubie(cubie)
+            highlight = pos in highlight_cubies
+            self.draw_cubie(cubie, highlight=highlight)
             glPopMatrix()
 
         glPopMatrix()
+        self.draw_ui()
         pygame.display.flip()
 
     # Input Handling 
@@ -659,6 +866,7 @@ class RubiksCube3D:
                 if e.key == K_SPACE:
                     moves = self.scrambler.scramble()
                     self.anim_q.extend(moves)
+                    self.move_count = 0
                     if not self.animating:
                         self.next_anim()
                 elif e.key == K_RETURN:
@@ -672,6 +880,28 @@ class RubiksCube3D:
                 mx, my = e.pos
                 self.drag_start = (mx, my)
                 self.drag_prev = (mx, my)
+
+                # UI Button check
+                if self.btn_scramble.collidepoint(mx, my):
+                    if not (self.animating or self.snap_animating or self.drag_slice):
+                        moves = self.scrambler.scramble()
+                        self.anim_q.extend(moves)
+                        self.move_count = 0
+                        if not self.animating:
+                            self.next_anim()
+                    continue
+                elif self.btn_solve.collidepoint(mx, my):
+                    if not (self.animating or self.snap_animating or self.drag_slice):
+                        moves = self.solver.solve()
+                        if moves:
+                            self.anim_q.extend(moves)
+                            if not self.animating:
+                                self.next_anim()
+                    continue
+                elif self.btn_toggle_mode.collidepoint(mx, my):
+                    self.training_mode = not self.training_mode
+                    self.ui_dirty = True
+                    continue
 
                 # Don't start new interactions during animations
                 if self.animating or self.snap_animating:

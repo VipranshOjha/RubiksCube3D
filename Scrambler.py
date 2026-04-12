@@ -9,7 +9,7 @@ class CubeScrambler:
         self.layers = [-1, 1]           # outer layers only (kociemba-compatible)
         self.directions = [-1, 1]
 
-    def scramble(self, num_moves=20):
+    def scramble(self, num_moves=25):
         """Generate a random scramble sequence.
 
         Returns:
