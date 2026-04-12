@@ -41,10 +41,19 @@ class TrainingSolver:
         return self.get_yellow_corners_orient_step()
 
     def is_solved(self):
-        # Basic solved check - could use Solver's implementation but let's be self-contained or import
-        from Solver import CubeSolver
-        temp_solver = CubeSolver(self.core)
-        return temp_solver.is_solved()
+        """Check if the cube is solved by verifying each face's uniform color."""
+        cubies = self.core.get_cubies()
+        face_normals = [(0,1,0), (0,-1,0), (0,0,1), (0,0,-1), (1,0,0), (-1,0,0)]
+        for normal in face_normals:
+            color = None
+            # Check all cubies on this face
+            for pos, cubie in cubies.items():
+                if normal in cubie.stickers:
+                    if color is None:
+                        color = cubie.stickers[normal]
+                    elif cubie.stickers[normal] != color:
+                        return False
+        return True
 
     def get_center_color(self, normal):
         return self.core.get_cubies().get(normal).stickers.get(normal)
